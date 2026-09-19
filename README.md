@@ -1,5 +1,7 @@
 # EquiShift
 
+[![CI](https://github.com/Vanderhell/EquiShift/actions/workflows/ci.yml/badge.svg)](https://github.com/Vanderhell/EquiShift/actions/workflows/ci.yml)
+
 *Move values. Preserve constraints. Stay deterministic.*
 
 Version **0.1.0**. Deterministic C11 primitives for safe constraint-preserving

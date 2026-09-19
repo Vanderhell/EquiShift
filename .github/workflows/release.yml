@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Verify and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y clang
+      - name: Run GCC release tests
+        run: make clean all CC=gcc AR=ar
+      - name: Run Clang release tests and sanitizers
+        run: make clean test sanitize CC=clang AR=llvm-ar
+      - name: Verify embedded cross-build
+        run: make clean cross-build CLANG=clang
+      - name: Create source package
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p dist
+          git archive --format=tar.gz --prefix="equishift-${TAG}/" "${TAG}" \
+            --output="dist/equishift-${TAG}-source.tar.gz"
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "${TAG}" \
+            "dist/equishift-${TAG}-source.tar.gz" \
+            --title "EquiShift ${TAG}" \
+            --notes-file CHANGELOG.md
