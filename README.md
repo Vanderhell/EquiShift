@@ -33,6 +33,38 @@ Sequence restoration copies the saved baseline exactly. Physical actuator
 atomicity and power-loss persistence remain the caller's responsibility. The
 sequence object layout is not a cross-release ABI promise.
 
+## Why this matters in embedded systems
+
+Many embedded systems must redistribute a fixed budget without changing its
+total. For four channels, the state might be:
+
+```text
+[25, 25, 25, 25]  total = 100
+```
+
+If channel B needs to increase by 5, simply doing `B += 5` produces a total of
+105 and breaks the system invariant. EquiShift performs a compensating
+two-channel transfer instead:
+
+```text
+A -= 5
+B += 5
+
+[20, 30, 25, 25]  total = 100
+```
+
+This makes it possible to safely perturb a system while preserving its global
+constraint—for example when splitting power between outputs, driving PWM or
+other actuators, enforcing current or power budgets, coordinating valves and
+multi-channel control, calibrating channels, running diagnostic probes, or
+performing online system identification.
+
+Before writing, EquiShift checks headroom and configured limits. If the transfer
+cannot be completed, it leaves the state unchanged. A successful transfer
+writes only two channels, uses no heap, and a sequence can be restored exactly
+from its saved baseline, avoiding cumulative drift during repeated probing or
+calibration.
+
 ## Build and verification
 
 ```sh
