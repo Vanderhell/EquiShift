@@ -1,5 +1,5 @@
 #include "constrained_probe/transfer.h"
-#include "constrained_probe/transfer_score.h"
+#include "transfer_score.h"
 #include <assert.h>
 #include <limits.h>
 #include <stddef.h>

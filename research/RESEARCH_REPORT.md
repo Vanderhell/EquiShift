@@ -1,4 +1,4 @@
-# Constrained Probe Toolkit: research record
+# EquiShift: research record
 
 ## Project outcome
 

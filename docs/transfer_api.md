@@ -1,46 +1,83 @@
 # Stable transfer API contract
 
-The API declared by `include/constrained_probe/transfer.h` is stable. The optional legacy response decoder is declared separately in `transfer_score.h` and is not part of the hot runtime path.
+For release v0.1.0, the stable public surface is exactly the declarations in
+`include/constrained_probe/transfer.h`. The optional response-score helper is
+internal at `src/internal/transfer_score.h` and is not linked into the default
+library.
 
-## Invariants
+## Transfer behavior
 
-For distinct source `A` and destination `B`, a signed transfer `d` applies:
+For distinct source `A`, destination `B`, and signed nonzero delta `d`:
 
-```
+```text
 A' = A - d
 B' = B + d
 ```
 
-The mathematical sum is unchanged. Every other channel is bit-identical. A successful `cp_transfer_apply()` writes exactly those two array elements. It computes and validates both results before either write, so a failed call writes nothing.
+The mathematical sum is unchanged; other channels are unchanged. A successful
+`cp_transfer_apply` validates both results before writing and writes exactly
+the two selected `int32_t` elements. Failure writes no channel elements.
+`cp_transfer_safe_range` returns the complete feasible delta interval
+intersected with int32 range. Both selected current values and bounds must be
+valid. Its two output pointers must differ. A range containing only zero means
+no nonzero transfer is feasible.
 
-`cp_transfer_safe_range()` returns the complete feasible interval `[minimum_delta, maximum_delta]`, intersected with the representable `int32_t` delta domain. The current values for both selected channels must already satisfy their respective bounds. A range containing only zero means no nonzero transfer is currently possible.
+## Valid inputs and arithmetic
 
-## Valid input domain
+* Count is `2..UINT16_MAX`; channel indices are less than count; source and
+  destination differ. Vectors contain at least `count` elements.
+* Required pointers are non-null. Bounds are inclusive int32 values with
+  `minimum[i] <= maximum[i]` for each used channel.
+* `cp_transfer_apply` accepts any nonzero int32 delta, including
+  `INT32_MIN`; it uses widened checks and does not negate the delta.
+* `cp_transfer_validate` and `cp_transfer_delta` describe a signed pair
+  vector containing both `step` and `-step`. They reject `INT32_MIN` because
+  its negation is not representable.
+* Sequence operation count is `1..UINT16_MAX`. Each operation has valid,
+  distinct channels and nonzero delta. Headroom is rechecked when executed.
+* All result arithmetic is checked before narrowing or mutation. Invalid
+  pointers, dimensions, indices, limits, or infeasible operations return
+  `false`; output parameters are written only on success.
 
-* `count >= 2`; source and destination are in `[0,count)` and distinct.
-* Every used pointer is non-null. Bounds are inclusive `int32_t` values with `minimum[i] <= maximum[i]`.
-* Current source/destination values must lie within their bounds. Sequence begin checks all channels.
-* Applied delta is nonzero. The full `int32_t` domain, including `INT32_MIN`, is supported by the runtime apply path. No negation of the delta is performed.
-* Sequence operation count is 1 through `UINT16_MAX`; each operation has valid distinct channels and a nonzero delta. Runtime headroom is checked at each step, so a later infeasible operation fails without applying that operation.
+Direct `cp_transfer_apply` callers must keep `values`, `minimum`, and
+`maximum` arrays non-overlapping. `cp_transfer_safe_range` output pointers must
+refer to distinct, non-overlapping int64 objects. These overlap requirements
+are caller preconditions, not generally detected errors. A sequence requires
+its state, values, baseline, minimum, maximum, and operation arrays all be
+pairwise disjoint.
 
-The older `cp_transfer_validate()`/`cp_transfer_delta()` pair-vector helper emits both `step` and `-step` as int32 values, so it rejects `INT32_MIN`. This does not constrain `cp_transfer_apply()` or sequence operations, which can apply `INT32_MIN` safely.
+## Sequence and restore
 
-## Failure semantics
+The caller allocates every object and array; there is no heap, mutable global,
+or hidden allocation. Call `cp_transfer_sequence_begin` before any other
+sequence operation. It validates the current vector and descriptors, then
+copies the exact initial values to the caller-owned baseline. The baseline,
+limits, operations, and arrays must remain valid and unchanged for the
+sequence lifetime. Calls on one sequence must be serialized.
 
-All boolean functions return false for invalid pointers, dimensions, indices, bounds, or infeasible requested transfers. Safe-range outputs are written only on success. `cp_transfer_apply()` performs no writes on failure. Sequence begin snapshots only after validating the supplied state and operation descriptors. An out-of-order or duplicate sequence index fails without changing state or channel values. If the next planned operation is infeasible, sequence status becomes `FAILED`, but that operation changes no channel.
+`step` accepts only the next operation index. Duplicate or out-of-order calls
+fail without changing the sequence state or channel values. A planned transfer
+that fails headroom marks the sequence failed and applies no part of that
+operation. `finish` succeeds only when every planned operation has run and does
+not restore the vector. `restore` copies the saved baseline exactly after a
+partial prefix, completion, or failed operation; `abort` restores immediately
+from active, failed, or completed state. Restore is a copy, not inverse
+arithmetic, so it adds no arithmetic drift.
 
-## Sequence semantics and restore
+The sequence struct is caller-allocated opaque storage. Do not read or modify
+its reserved fields. The v0.1.0 release makes no binary ABI or cross-release
+struct-layout promise; compile clients against the matching header and rebuild
+when upgrading.
 
-The caller allocates the sequence object, value vector, baseline vector, limits, and immutable operation list. `begin` copies the exact initial vector into `baseline`. Call `step(sequence, expected_index)` once for each planned operation, in increasing index order. `finish` succeeds only after all declared steps and marks the sequence complete; it does not restore values. Call `restore` after completion to copy every baseline element back. `abort` restores immediately after any active prefix, failure, or completion. Restore can also be called after a failed step. Restoration is a baseline copy, not inverse arithmetic, so it cannot accumulate rounding or integer drift.
+## Hardware responsibilities and limits
 
-The sequence struct is caller-allocated opaque storage. Its reserved fields must not be read or modified. The caller tracks its expected operation index. Calls on one sequence must be serialized.
+The C updates are not an atomic physical multi-channel actuator operation.
+The caller must perform the physical writes and provide a hardware latch or
+commit mechanism if simultaneous changes are required. Software restoration
+works only while state and baseline memory remain available. Power-loss
+recovery needs caller-managed persistence and pointer rebinding; the library
+does not provide it.
 
-## Ownership and hardware responsibilities
-
-All arrays must be disjoint, caller-owned, and remain valid for the sequence lifetime. The caller must not modify the baseline, bounds, or operation list while a sequence is active. There is no heap use, global mutable state, or hidden allocation. A successful transfer changes two in-memory channel values; the caller is responsible for issuing the corresponding physical actuator writes and for applying the N writes produced by restore.
-
-The two C assignments are not an atomic physical multi-channel update. A device requiring synchronized actuator changes must provide a hardware latch/commit layer. Early software interruption is recoverable while the sequence object and baseline are still available. Power-loss recovery requires caller-managed persistence and pointer rebinding; this API cannot recover volatile state after reset by itself.
-
-## Optional score helper
-
-`cp_transfer_score()` remains available through `transfer_score.h` for compatibility. It is outside the critical runtime translation unit because its int64 score scaling can require a compiler runtime multiply helper on Cortex-M0. Applications that do not need response decoding need not link `src/transfer_score.c`.
+The optional internal `cp_transfer_score` helper is kept for existing in-tree
+users. Its int64 scaling may need a compiler runtime multiply helper on
+Cortex-M0, so it is isolated from the default library and hot transfer path.

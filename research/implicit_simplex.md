@@ -6,4 +6,4 @@ For a local linear response, centered probe measurements recover the gradient pr
 
 Research did not establish balanced probing as the default. At N=8 in the deterministic harness, its uniform-radius probes had no bias under the tested radial quadratic term, but the reference-transfer design used fewer actuator writes (16 changed writes versus 30), and settled faster in the modeled sequence (136 versus 153 ticks). Keep this family experimental and choose it only when the symmetry or equal-radius response behavior fits the plant.
 
-The checked implementation is in `include/constrained_probe/balanced.h` and `src/balanced.c`; it is excluded from the primary API discussion in the README. See [`RESEARCH_REPORT.md`](RESEARCH_REPORT.md) for canonical equations and experiment details.
+The specialized implementation is internal in `src/internal/balanced.h` and `src/balanced.c`; it is excluded from the stable public API. See [`RESEARCH_REPORT.md`](RESEARCH_REPORT.md) for canonical equations and experiment details.

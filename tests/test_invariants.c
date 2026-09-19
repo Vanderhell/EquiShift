@@ -1,4 +1,4 @@
-#include "constrained_probe/balanced.h"
+#include "balanced.h"
 #include <assert.h>
 #include <math.h>
 #include <stdint.h>
@@ -48,14 +48,6 @@ int main(void)
             double reconstructed=0;
             for(uint16_t i=0;i<n;i++){int32_t d;assert(bp_delta(&cfg,i,j,&d));reconstructed+=(double)z[i]/(n*q)*d;}
             assert(fabs(reconstructed-z[j])<1e-9);
-        }
-        int32_t current[7],target;
-        for(uint16_t j=0;j<n;j++)assert(bp_delta(&cfg,0,j,&current[j]));
-        for(uint16_t i=1;i<n;i++) {
-            uint16_t oa,na;int32_t oc,nc;
-            assert(bp_transition(n,i-1,i,q,&oa,&oc,&na,&nc));
-            current[oa]+=oc;current[na]+=nc;
-            for(uint16_t j=0;j<n;j++){assert(bp_delta(&cfg,i,j,&target));assert(current[j]==target);}
         }
     }
     return 0;

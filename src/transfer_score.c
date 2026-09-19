@@ -1,4 +1,4 @@
-#include "constrained_probe/transfer_score.h"
+#include "internal/transfer_score.h"
 #include <stddef.h>
 
 bool cp_transfer_score(uint16_t count, uint16_t reference, int32_t baseline,

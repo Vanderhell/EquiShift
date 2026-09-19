@@ -39,7 +39,8 @@ typedef struct {
    not be modified. Calls on one sequence must be serialized. Baseline stores
    the exact begin state. */
 typedef struct {
-    void *_reserved_pointers[5];
+    void *_reserved_mutable_pointers[2];
+    const void *_reserved_input_pointers[3];
     uint16_t _reserved_counters[3];
     int32_t _reserved_status;
 } cp_transfer_sequence_t;

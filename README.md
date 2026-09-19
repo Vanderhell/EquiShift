@@ -1,29 +1,59 @@
-# Constrained Probe Toolkit
+# EquiShift
 
-A small deterministic C11 toolkit for constraint-preserving perturbation and measurement analysis. The modules are intentionally narrow and use caller-owned buffers, integer arithmetic, and checked inputs.
+*Move values. Preserve constraints. Stay deterministic.*
+
+Version **0.1.0**. Deterministic C11 primitives for safe constraint-preserving
+transfers on embedded systems. The stable public include tree contains only
+`constrained_probe/transfer.h`.
 
 ## Modules
 
-**PRIMARY — constrained pair transfer**
+**Stable: transfer** — bounded two-channel updates that preserve the exact
+integer sum, plus a caller-owned sequence with exact restore. The contract is
+in [`docs/transfer_api.md`](docs/transfer_api.md).
 
-Move one channel by `+a` and another by `-a`. This preserves the total actuator command. `transfer.h` provides checked limits, two-channel application, and a caller-owned sequence state machine. The stable contract is in [`docs/transfer_api.md`](docs/transfer_api.md). The optional response-score helper is isolated in `transfer_score.h`.
+**Internal: residual** — specialized ordered-sequence integrity checks and an
+aggregate balanced-probe consistency residual. It cannot identify a fault's
+cause. Header and implementation are under `src/internal` and `src`.
 
-**SPECIALIZED — sequence consistency residual**
+**Internal: balanced** — specialized reference-free N-probe frame generation
+and projected-score decoding. Its peak component grows as `(N-1)|q|`; it is
+not the default transfer method.
 
-For a complete balanced probe sequence and an independently measured baseline, compute `sum(probe responses) - N * baseline`. This is useful for selected model-consistency checks; it does not localize arbitrary faults.
+The implicit-simplex implementation and comparison programs remain under
+`experiments/`; the canonical mathematical conclusions are in
+[`research/RESEARCH_REPORT.md`](research/RESEARCH_REPORT.md). Historical reports
+are archived under `research/historical/`.
 
-**EXPERIMENTAL — balanced simplex probing**
+## Embedded properties
 
-The implicit N-probe balanced frame, checked decoder, headroom helper, and transition helper remain available through `balanced.h` for controlled experiments. They are not the default practical design.
+The stable transfer path uses caller-owned memory, no heap or mutable globals,
+checked int32 arithmetic, and exactly two channel-array writes on success.
+Sequence restoration copies the saved baseline exactly. Physical actuator
+atomicity and power-loss persistence remain the caller's responsibility. The
+sequence object layout is not a cross-release ABI promise.
 
-## Build and test
+## Build and verification
 
 ```sh
-make test
-make sanitize
-make benchmark
-make example
-make experimental-test
+make                 # stable library plus host tests
+make test            # optimized host tests
+make sanitize        # ASan + UBSan host tests
+make cross-build     # Cortex-M0, Cortex-M4, RV32IMC objects (Clang)
 ```
 
-The deterministic comparison harness is `experiments/balanced_probe_experiments.py`. The mathematical record and limits are in [`research/RESEARCH_REPORT.md`](research/RESEARCH_REPORT.md). Old exploratory conclusions are retained under `research/historical/` with supersession notices.
+Experimental targets are opt-in:
+
+```sh
+make experimental-test
+make experimental-benchmark
+make experimental-balanced-benchmark
+make experimental-balanced-example
+make balanced-evaluation
+```
+
+The target objects have been cross-compiled for Cortex-M0/M4 and RV32IMC
+(compatible with ESP32-C3's ISA). No physical MCU cycle measurements are
+claimed. Host tests use C11 with GCC/Clang-compatible warning flags; public
+headers are C++ compatible. Build from source for each release: v0.1.0 does
+not promise binary ABI compatibility across releases.

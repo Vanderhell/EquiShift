@@ -8,8 +8,10 @@
 extern "C" {
 #endif
 
-/* Optional non-hot-path decoder. Responses are indexed by channel;
-   responses[reference] is ignored. Scores retain response scaling and sum to zero. */
+/* Internal optional non-hot-path decoder; not stable public API. Requires
+   count>=2, reference<count, and count-element non-overlapping response and
+   output arrays. responses[reference] is ignored. Scores are int64, retain
+   response scaling, and sum to zero. Output is unchanged on failure. */
 bool cp_transfer_score(uint16_t count, uint16_t reference, int32_t baseline,
                        const int32_t *responses, int64_t *scores);
 

@@ -11,11 +11,11 @@ typedef enum {
     CP_SEQ_RESTORED
 } cp_seq_status_t;
 
-#define SEQ_VALUES(s) ((int32_t *)(s)->_reserved_pointers[0])
-#define SEQ_BASELINE(s) ((int32_t *)(s)->_reserved_pointers[1])
-#define SEQ_MINIMUM(s) ((const int32_t *)(s)->_reserved_pointers[2])
-#define SEQ_MAXIMUM(s) ((const int32_t *)(s)->_reserved_pointers[3])
-#define SEQ_OPERATIONS(s) ((const cp_transfer_operation_t *)(s)->_reserved_pointers[4])
+#define SEQ_VALUES(s) ((int32_t *)(s)->_reserved_mutable_pointers[0])
+#define SEQ_BASELINE(s) ((int32_t *)(s)->_reserved_mutable_pointers[1])
+#define SEQ_MINIMUM(s) ((const int32_t *)(s)->_reserved_input_pointers[0])
+#define SEQ_MAXIMUM(s) ((const int32_t *)(s)->_reserved_input_pointers[1])
+#define SEQ_OPERATIONS(s) ((const cp_transfer_operation_t *)(s)->_reserved_input_pointers[2])
 #define SEQ_COUNT(s) ((s)->_reserved_counters[0])
 #define SEQ_OPERATION_COUNT(s) ((s)->_reserved_counters[1])
 #define SEQ_NEXT(s) ((s)->_reserved_counters[2])
@@ -107,11 +107,11 @@ bool cp_transfer_sequence_begin(cp_transfer_sequence_t *sequence,
             operations[i].source == operations[i].destination || operations[i].delta == 0) return false;
 
     for (i = 0; i < count; ++i) baseline[i] = values[i];
-    sequence->_reserved_pointers[0] = values;
-    sequence->_reserved_pointers[1] = baseline;
-    sequence->_reserved_pointers[2] = (void *)minimum;
-    sequence->_reserved_pointers[3] = (void *)maximum;
-    sequence->_reserved_pointers[4] = (void *)operations;
+    sequence->_reserved_mutable_pointers[0] = values;
+    sequence->_reserved_mutable_pointers[1] = baseline;
+    sequence->_reserved_input_pointers[0] = minimum;
+    sequence->_reserved_input_pointers[1] = maximum;
+    sequence->_reserved_input_pointers[2] = operations;
     SEQ_COUNT(sequence) = count;
     SEQ_OPERATION_COUNT(sequence) = operation_count;
     SEQ_NEXT(sequence) = 0;
