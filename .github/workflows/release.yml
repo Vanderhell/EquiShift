@@ -22,7 +22,7 @@ jobs:
       - name: Run GCC release tests
         run: make clean all CC=gcc AR=ar
       - name: Run Clang release tests and sanitizers
-        run: make clean test sanitize CC=clang AR=llvm-ar
+        run: make clean test sanitize CC=clang AR=ar
       - name: Verify embedded cross-build
         run: make clean cross-build CLANG=clang
       - name: Create source package

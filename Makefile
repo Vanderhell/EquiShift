@@ -6,9 +6,15 @@ CFLAGS ?= -std=c11 -Wall -Wextra -Wpedantic -O2
 BUILD := build
 ifeq ($(OS),Windows_NT)
 EXE := .exe
+ifeq ($(MSYSTEM),)
 MKDIR_BUILD := if not exist "$(BUILD)" mkdir "$(BUILD)"
 MKDIR_SANITIZE := if not exist "$(BUILD)/sanitize" mkdir "$(BUILD)/sanitize"
 MKDIR_TARGETS := if not exist "$(BUILD)/targets" mkdir "$(BUILD)/targets"
+else
+MKDIR_BUILD := mkdir -p $(BUILD)
+MKDIR_SANITIZE := mkdir -p $(BUILD)/sanitize
+MKDIR_TARGETS := mkdir -p $(BUILD)/targets
+endif
 else
 EXE :=
 MKDIR_BUILD := mkdir -p $(BUILD)

@@ -19,7 +19,7 @@ jobs:
         if: matrix.compiler == 'clang'
         run: sudo apt-get update && sudo apt-get install -y clang
       - name: Build and test
-        run: make clean all CC=${{ matrix.compiler }} AR=${{ matrix.compiler == 'clang' && 'llvm-ar' || 'ar' }}
+        run: make clean all CC=${{ matrix.compiler }} AR=ar
 
   sanitizers:
     name: ASan and UBSan
@@ -28,7 +28,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
       - name: Run sanitizers
-        run: make clean sanitize CC=clang AR=llvm-ar
+        run: make clean sanitize CC=clang AR=ar
 
   cross-build:
     name: Cross-build embedded targets

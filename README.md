@@ -8,6 +8,8 @@ Version **0.1.0**. Deterministic C11 primitives for safe constraint-preserving
 transfers on embedded systems. The stable public include tree contains only
 `constrained_probe/transfer.h`.
 
+License: Apache-2.0 — Vanderhell
+
 ## Modules
 
 **Stable: transfer** — bounded two-channel updates that preserve the exact
